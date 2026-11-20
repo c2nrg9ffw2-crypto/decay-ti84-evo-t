@@ -1,16 +1,15 @@
 # Decay Chain Solver for the TI-84 Evo-T
 
-Type the number of **protons** and **neutrons** of a nucleus.
+Type a nucleus like **U 238**, or its number of **protons** and **neutrons**.
 The calculator follows its **radioactive decay** step by step on the nuclide chart,
 until it reaches a stable nucleus.
 
 It is written in Python for the **TI-84 Evo-T** graphing calculator.
 
 > **Made with AI:** this program and this README were created with the help of AI (Claude by Anthropic).
+> Tested on a real TI-84 Evo-T.
 >
-> **Not tested on a real TI-84 Evo-T yet.** It was tested on a computer.
-> The file is big (about 25 KB), so the calculator may run out of memory.
-> If that happens, please open an issue.
+> The file is big (about 27 KB). If the calculator runs out of memory, please open an issue.
 
 ## What it shows
 
@@ -43,6 +42,16 @@ The chain follows the **most likely** way, and shows the other ways below it:
 ```
 Bi-212 beta- 1 h
    or alpha 36%
+```
+
+After the result, each other way gets its own page. It follows that way step by step,
+until it reaches its end or joins the main path again:
+
+```
+Other way 1 of 1:
+Bi-212 alpha 36%
+Tl-208 beta- 3.1 min
+Pb-208 stable
 ```
 
 When the paths end in **different** nuclei, a last page lists all possible ends and their chance:
@@ -94,8 +103,9 @@ The program stops there, like most school nuclide charts.
 ## How to use it
 
 1. Open the **Python** app and run **DECAY**.
-2. `Protons Z?` – type a number, like `92`. An element symbol like `U` also works.
-3. `Neutrons N?` – type a number, like `146`.
+2. `Nucleus or Z?` – type the element symbol and the mass number, like `U 238`.
+   `U-238`, `U238` and `238U` also work.
+3. Or type only the protons, like `92` (or only `U`). Then `Neutrons N?` asks for the neutrons, like `146`.
 4. Press **any key** to see the next page.
 5. Press **enter** on an empty line to quit.
 

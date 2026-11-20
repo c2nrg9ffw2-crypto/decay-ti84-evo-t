@@ -1,5 +1,5 @@
 # Decay chain solver for the TI-84 Evo
-# Type the number of protons (Z) and neutrons (N).
+# Type a nucleus like U 238, or protons (Z) and neutrons (N).
 # The program follows the main decay path on the nuclide chart
 # until the nucleus is stable, and shows every step.
 # Data: IAEA nuclide chart (ground states), made by decay_make.py
@@ -435,6 +435,57 @@ def read_z(s):     # a number or an element symbol (U, Pb, ...)
             return i
     return int(s)
 
+def read_in(s):    # "U 238", "U-238", "U238", "238U" -> (z, n); "U" or "92" -> (z, None)
+    s = s.replace("-", " ")
+    w = ""         # letters (symbol)
+    a = ""         # digits (mass number A)
+    for c in s:
+        if "0" <= c <= "9":
+            a += c
+        elif c != " ":
+            w += c
+    if not w:
+        if len(s.split()) > 1:
+            raise ValueError     # "92 146": not clear, ask again
+        return int(a), None
+    z = read_z(w)
+    if not a:
+        return z, None
+    return z, int(a) - z
+
+def walk(z, n, sc, main):   # show one path; main = main path list (or None)
+    count = {}
+    steps = 0
+    way = [(z, n)]
+    br = []        # side branches: (z, n, (letter, %))
+    while steps < 80:
+        m = mode(z, n)
+        if main and m in MOVE and (z, n) in main:
+            sc.put(pad(name(z, n), 7) + "= main path")
+            break
+        if m in MOVE:
+            w = MOVE[m]
+            sc.put(pad(name(z, n), 7) + pad(w[0], 6) + half(z, n))
+            for s in sides(z, n):
+                t = MOVE[s[0]][0] if s[0] in MOVE else "fission"
+                sc.put("   or " + t + " " + pct(s[1]))
+                br.append((z, n, s))
+            count[w[0]] = count.get(w[0], 0) + 1
+            z, n = z + w[1], n + w[2]
+            way.append((z, n))
+            steps += 1
+            continue
+        if m == "s":
+            sc.put(pad(name(z, n), 7) + "stable")
+        elif m == "l":
+            sc.put(pad(name(z, n), 7) + "~stable")
+        elif m == "f":
+            sc.put(pad(name(z, n), 7) + "fission")
+        else:
+            sc.put(pad(name(z, n), 7) + "?")
+        break
+    return z, n, steps, count, way, br
+
 def solve(z, n):
     sc = Screen()
     if disp_clr:
@@ -447,29 +498,7 @@ def solve(z, n):
     z0, n0 = z, n
     sc.put(name(z, n) + "  Z=" + str(z) + " N=" + str(n))
     sc.put("Nucleus Decay T1/2")
-    count = {}
-    steps = 0
-    while steps < 80:
-        m = mode(z, n)
-        if m in MOVE:
-            w = MOVE[m]
-            sc.put(pad(name(z, n), 7) + pad(w[0], 6) + half(z, n))
-            for s in sides(z, n):
-                t = MOVE[s[0]][0] if s[0] in MOVE else "fission"
-                sc.put("   or " + t + " " + pct(s[1]))
-            count[w[0]] = count.get(w[0], 0) + 1
-            z, n = z + w[1], n + w[2]
-            steps += 1
-            continue
-        if m == "s":
-            sc.put(pad(name(z, n), 7) + "stable")
-        elif m == "l":
-            sc.put(pad(name(z, n), 7) + "~stable")
-        elif m == "f":
-            sc.put(pad(name(z, n), 7) + "fission")
-        else:
-            sc.put(pad(name(z, n), 7) + "?")
-        break
+    z, n, steps, count, way, br = walk(z, n, sc, None)
     sc.wait()
     sc.put("Result: " + name(z, n))
     sc.put("Z=" + str(z) + " N=" + str(n) + " A=" + str(z + n))
@@ -495,6 +524,16 @@ def solve(z, n):
         sc.put(str(count[k]) + "x " + WORD[k])
     if gc:
         gc.collect()
+    br = [b for b in br if b[2][0] in MOVE]   # fission has no path to show
+    for i in range(len(br)):   # the other ways, each on its own page
+        bz, bn, s = br[i]
+        sc.wait()
+        sc.put("Other way " + str(i + 1) + " of " + str(len(br)) + ":")
+        w = MOVE[s[0]]
+        sc.put(name(bz, bn) + " " + w[0] + " " + pct(s[1]))
+        walk(bz + w[1], bn + w[2], sc, way)
+    if gc:
+        gc.collect()
     e = ends(z0, n0)
     if len(e) < 2:
         return
@@ -514,17 +553,19 @@ def solve(z, n):
         sc.put("+ " + str(len(e) - 12) + " more (small)")
 
 print("Decay chain solver")
-print("Type protons and neutrons.")
+print("Type U 238 (symbol + mass)")
+print("or protons Z, then N.")
 print("Empty = quit.")
 while True:
-    s = ask("Protons Z? ")
+    s = ask("Nucleus or Z? ")
     if not s:
         break
     try:
-        z = read_z(s)
-        n = int(ask("Neutrons N? "))
+        z, n = read_in(s)
+        if n is None:
+            n = int(ask("Neutrons N? "))
     except:
-        print("Please type a number.")
+        print("Try U 238 or a number.")
         continue
     solve(z, n)
     if gc:
